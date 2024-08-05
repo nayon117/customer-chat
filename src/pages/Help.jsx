@@ -70,18 +70,18 @@ const Help = () => {
   }, [messages]);
 
   return (
-    <div className="p-4">
+    <div className="p-2">
       <h2 className="text-2xl font-bold mb-4">Help</h2>
       <section className="flex flex-col mt-6">
         <div
-          className="chat-window flex-grow mt-4 overflow-y-auto border border-gray-300 rounded-md p-4"
+          className=" flex-grow mt-4 overflow-y-auto border border-gray-300 rounded-md p-4"
           ref={chatWindowRef}
         >
           {messages.map((msg, index) => (
             <div key={index} className="mb-6">
               {msg.userQuestion && (
                 <div className="flex items-center mb-2">
-                  <p className="chat-bubble bg-blue-500 text-white p-2 rounded-md">{msg.userQuestion}</p>
+                  <p className=" bg-pink-500 text-white p-2 rounded-md">{msg.userQuestion}</p>
                 </div>
               )}
               {msg.botResponse === "" && isLoading && (
@@ -114,7 +114,7 @@ const Help = () => {
               disabled={isLoading}
             >
               {isLoading ? (
-               <span className="loading loading-spinner loading-md"></span>
+               <span className="animate-spin">...</span>
               ) : (
                 <BsSend />
               )}
