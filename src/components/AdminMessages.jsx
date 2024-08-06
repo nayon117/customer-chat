@@ -20,6 +20,7 @@ function AdminMessages() {
 
       setSocket(newSocket);
 
+       // Listen for new messages from users
       newSocket.on('newMessage', (message) => {
         setUsers((prevUsers) => {
           const userMessages = prevUsers[message.userId] || [];
@@ -66,19 +67,21 @@ function AdminMessages() {
     if (replyMessage.trim() !== '' && selectedUser && socket) {
       socket.emit('adminReply', { userId: selectedUser, message: replyMessage });
       setReplyMessage('');
-      // Remove local state update, rely on server broadcast
     }
   };
 
   if (!isAuthenticated) {
     return (
-      <form onSubmit={authenticateAdmin}>
+      <div className="min-h-screen flex items-center justify-center bg-pink-50">
+      <form onSubmit={authenticateAdmin} className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+        <h2 className="text-2xl font-bold mb-6 text-pink-600 text-center">Admin Login</h2>
         <input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Admin Email"
           required
+          className="w-full px-3 py-2 mb-4 border border-pink-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
         />
         <input
           type="password"
@@ -86,43 +89,79 @@ function AdminMessages() {
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Admin Password"
           required
+          className="w-full px-3 py-2 mb-6 border border-pink-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
         />
-        <button type="submit">Login</button>
+        <button type="submit" className="w-full bg-pink-600 text-white py-2 rounded-md hover:bg-pink-700 transition duration-300">Login</button>
       </form>
+    </div>
     );
   }
 
   return (
-    <div>
-      <h1>Admin Panel</h1>
-      <div>
-        {Object.keys(users).map((userId) => (
-          <button key={userId} onClick={() => setSelectedUser(userId)}>
-            User {userId}
-          </button>
-        ))}
-      </div>
-      {selectedUser && (
-        <div>
-          <h2>Chat with User {selectedUser}</h2>
-          <div style={{ height: '300px', overflowY: 'scroll', border: '1px solid #ccc', padding: '10px' }}>
-            {users[selectedUser].map((msg, index) => (
-              <div key={msg._id || index} style={{marginBottom: '10px'}}>
-                <strong>{msg.isAdmin ? 'Admin' : 'User'}:</strong> {msg.message}
-                <div style={{fontSize: '0.8em', color: '#888'}}>
-                  {new Date(msg.timestamp).toLocaleString()}
-                </div>
-              </div>
-            ))}
-          </div>
-          <input
-            value={replyMessage}
-            onChange={(e) => setReplyMessage(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && sendReply()}
-          />
-          <button onClick={sendReply}>Reply</button>
+    <div className="min-h-screen bg-pink-50 flex flex-col md:flex-row">
+      <div className="w-full md:w-1/4 bg-pink-100 p-4 overflow-y-auto">
+        <h1 className="text-2xl font-bold mb-4 text-pink-800">Admin Panel</h1>
+        <div className="flex flex-col space-y-2">
+          {Object.keys(users).map((userId) => (
+            <button
+              key={userId}
+              onClick={() => setSelectedUser(userId)}
+              className={`px-4 py-2 rounded-md transition duration-300 ${
+                selectedUser === userId
+                  ? 'bg-pink-600 text-white'
+                  : 'bg-white text-pink-800 hover:bg-pink-200'
+              }`}
+            >
+              User {userId}
+            </button>
+          ))}
         </div>
-      )}
+      </div>
+      <div className="flex-1 p-4">
+        {selectedUser ? (
+          <div className="bg-white rounded-lg shadow-md h-full flex flex-col">
+            <h2 className="text-xl font-semibold mb-4 p-4 bg-pink-600 text-white rounded-t-lg">
+              Chat with User {selectedUser}
+            </h2>
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {users[selectedUser].map((msg, index) => (
+                <div
+                  key={msg._id || index}
+                  className={`p-3 rounded-lg ${
+                    msg.isAdmin ? 'bg-pink-100 ml-auto' : 'bg-gray-100'
+                  } max-w-3/4`}
+                >
+                  <strong className="text-pink-800">{msg.isAdmin ? 'Admin' : 'User'}:</strong> {msg.message}
+                  <div className="text-xs text-gray-500 mt-1">
+                    {new Date(msg.timestamp).toLocaleString()}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="p-4 border-t border-pink-200">
+              <div className="flex space-x-2">
+                <input
+                  value={replyMessage}
+                  onChange={(e) => setReplyMessage(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && sendReply()}
+                  placeholder="Type your message..."
+                  className="flex-1 px-3 py-2 border border-pink-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                />
+                <button
+                  onClick={sendReply}
+                  className="px-4 py-2 bg-pink-600 text-white rounded-md hover:bg-pink-700 transition duration-300"
+                >
+                  Reply
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="h-full flex items-center justify-center text-pink-800 text-xl">
+            Select a user to start chatting
+          </div>
+        )}
+      </div>
     </div>
   );
 }

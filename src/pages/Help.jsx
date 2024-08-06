@@ -71,7 +71,7 @@ const Help = () => {
 
   return (
     <div className="p-2">
-      <h2 className="text-2xl font-bold mb-4">Help</h2>
+      <h2 className="text-2xl font-bold mb-4 text-pink-600 text-center">AI Help</h2>
       <section className="flex flex-col mt-6">
         <div
           className=" flex-grow mt-4 overflow-y-auto border border-gray-300 rounded-md p-4"
