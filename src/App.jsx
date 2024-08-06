@@ -8,6 +8,7 @@ import ChatButton from './components/ChatButton';
 import ChatLayout from './layout/ChatLayout';
 import ChatHome from './pages/ChatHome';
 import './index.css';
+import AdminMessages from './components/AdminMessages';
 
 function App() {
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -34,6 +35,7 @@ function App() {
     <div className="relative min-h-screen">
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/admin-messages" element={<AdminMessages />} />
         {isChatOpen && (
           <Route path="/chat" element={<ChatLayout isChatOpen={isChatOpen} toggleChat={toggleChat} />}>
             <Route path="chat-home" element={<ChatHome />} />

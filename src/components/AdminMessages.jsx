@@ -1,108 +1,113 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import io from 'socket.io-client';
 import axios from 'axios';
 
-const socket = io('http://localhost:3000');
-
-const AdminMessages = () => {
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
-  const [currentUser, setCurrentUser] = useState('');
-  const [users, setUsers] = useState([]);
-
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const response = await axios.get('http://localhost:3000/api/users');
-        setUsers(response.data);
-      } catch (error) {
-        console.error('Error fetching users:', error);
-      }
-    };
-
-    fetchUsers();
-  }, []);
+function AdminMessages() {
+  const [socket, setSocket] = useState(null);
+  const [users, setUsers] = useState({});
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [replyMessage, setReplyMessage] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   useEffect(() => {
-    socket.on('new_message', (message) => {
-      if (message.userId === currentUser) {
-        setMessages((prevMessages) => [...prevMessages, message]);
-      }
-    });
+    if (isAuthenticated) {
+      const newSocket = io('http://localhost:5000', {
+        query: { userId: 'admin' },
+        auth: { token: 'admin-token' }
+      });
 
-    socket.on('admin_response', (response) => {
-      if (response.userId === currentUser) {
-        setMessages((prevMessages) => [...prevMessages, response]);
-      }
-    });
+      setSocket(newSocket);
 
-    return () => {
-      socket.off('new_message');
-      socket.off('admin_response');
-    };
-  }, [currentUser]);
+      newSocket.on('newMessage', (message) => {
+        setUsers((prevUsers) => ({
+          ...prevUsers,
+          [message.userId]: [...(prevUsers[message.userId] || []), message]
+        }));
+      });
 
-  const fetchUserMessages = async (userId) => {
+      return () => {
+        newSocket.off('newMessage');
+        newSocket.close();
+      };
+    }
+  }, [isAuthenticated]);
+
+  const authenticateAdmin = async (e) => {
+    e.preventDefault();
+    console.log('Attempting login with:', { email, password }); // For debugging
     try {
-      const response = await axios.get(`http://localhost:3000/api/messages/${userId}`);
-      setMessages(response.data);
-      setCurrentUser(userId);
+      const response = await axios.post('http://localhost:5000/auth/admin-login', { email, password });
+      console.log('Server response:', response.data); // For debugging
+      if (response.data.success) {
+        setIsAuthenticated(true);
+      }
     } catch (error) {
-      console.error('Error fetching messages:', error);
+      console.error('Login error:', error.response ? error.response.data : error.message); // For debugging
+      alert('Invalid email or password');
     }
   };
 
-  const sendAdminResponse = () => {
-    if (input.trim() && currentUser) {
-      socket.emit('admin_response', { content: input, userId: currentUser });
-      setInput('');
+  const sendReply = () => {
+    if (replyMessage.trim() !== '' && selectedUser && socket) {
+      socket.emit('adminReply', { userId: selectedUser, message: replyMessage });
+      setReplyMessage('');
     }
   };
+
+  if (!isAuthenticated) {
+    return (
+      <form onSubmit={authenticateAdmin}>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Admin Email"
+          required
+        />
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Admin Password"
+          required
+        />
+        <button type="submit">Login</button>
+      </form>
+    );
+  }
 
   return (
-    <div className="admin-chat-container p-4 bg-gray-100">
-      <div className="user-list mb-4">
-        {users.map((user) => (
-          <button
-            key={user.userId}
-            onClick={() => fetchUserMessages(user.userId)}
-            className="p-2 bg-gray-200 rounded-lg mb-2 w-full text-left"
-          >
-            {user.userId}
+    <div>
+      <h1>Admin Panel</h1>
+      <div>
+        {Object.keys(users).map((userId) => (
+          <button key={userId} onClick={() => setSelectedUser(userId)}>
+            User {userId}
           </button>
         ))}
       </div>
-      <div className="messages flex-1 overflow-y-auto p-2 border border-gray-300 bg-white rounded-lg">
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={`p-2 mb-2 rounded-lg ${
-              msg.sender === 'user'
-                ? 'bg-blue-200 text-right'
-                : 'bg-gray-200 text-left'
-            }`}
-          >
-            {msg.content}
+      {selectedUser && (
+        <div>
+          <h2>Chat with User {selectedUser}</h2>
+          <div style={{ height: '300px', overflowY: 'scroll', border: '1px solid #ccc', padding: '10px' }}>
+            {users[selectedUser].map((msg, index) => (
+              <div key={index}>
+                {msg.isAdmin ? 'Admin: ' : 'User: '}{msg.message}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-      <div className="flex items-center space-x-2 mt-4">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type a response..."
-          className="flex-1 p-2 border border-gray-300 rounded-lg"
-        />
-        <button
-          onClick={sendAdminResponse}
-          className="bg-blue-500 text-white p-2 rounded-lg"
-        >
-          Send
-        </button>
-      </div>
+          <input
+            value={replyMessage}
+            onChange={(e) => setReplyMessage(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && sendReply()}
+          />
+          <button onClick={sendReply}>Reply</button>
+        </div>
+      )}
     </div>
   );
-};
+}
 
 export default AdminMessages;

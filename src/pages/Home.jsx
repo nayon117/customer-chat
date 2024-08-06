@@ -1,5 +1,7 @@
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react";
 
+import { Link } from "react-router-dom";
+
 const Home = () => {
   return (
     <div>
@@ -9,6 +11,10 @@ const Home = () => {
       <SignedIn>
         <UserButton />
       </SignedIn>
+
+      <div>
+        <Link to='/admin-messages'>Admin</Link>
+      </div>
     </div>
   )
 }
