@@ -21,14 +21,27 @@ function AdminMessages() {
       setSocket(newSocket);
 
       newSocket.on('newMessage', (message) => {
-        setUsers((prevUsers) => ({
-          ...prevUsers,
-          [message.userId]: [...(prevUsers[message.userId] || []), message]
-        }));
+        setUsers((prevUsers) => {
+          const userMessages = prevUsers[message.userId] || [];
+          // Check if the message already exists to avoid duplicates
+          if (!userMessages.some(msg => msg._id === message._id)) {
+            return {
+              ...prevUsers,
+              [message.userId]: [...userMessages, message]
+            };
+          }
+          return prevUsers;
+        });
+      });
+
+      newSocket.emit('getAllMessages');
+      newSocket.on('allMessages', (messages) => {
+        setUsers(messages);
       });
 
       return () => {
         newSocket.off('newMessage');
+        newSocket.off('allMessages');
         newSocket.close();
       };
     }
@@ -36,15 +49,15 @@ function AdminMessages() {
 
   const authenticateAdmin = async (e) => {
     e.preventDefault();
-    console.log('Attempting login with:', { email, password }); // For debugging
+    console.log('Attempting login with:', { email, password });
     try {
       const response = await axios.post('http://localhost:5000/auth/admin-login', { email, password });
-      console.log('Server response:', response.data); // For debugging
+      console.log('Server response:', response.data);
       if (response.data.success) {
         setIsAuthenticated(true);
       }
     } catch (error) {
-      console.error('Login error:', error.response ? error.response.data : error.message); // For debugging
+      console.error('Login error:', error.response ? error.response.data : error.message);
       alert('Invalid email or password');
     }
   };
@@ -53,6 +66,7 @@ function AdminMessages() {
     if (replyMessage.trim() !== '' && selectedUser && socket) {
       socket.emit('adminReply', { userId: selectedUser, message: replyMessage });
       setReplyMessage('');
+      // Remove local state update, rely on server broadcast
     }
   };
 
@@ -93,8 +107,11 @@ function AdminMessages() {
           <h2>Chat with User {selectedUser}</h2>
           <div style={{ height: '300px', overflowY: 'scroll', border: '1px solid #ccc', padding: '10px' }}>
             {users[selectedUser].map((msg, index) => (
-              <div key={index}>
-                {msg.isAdmin ? 'Admin: ' : 'User: '}{msg.message}
+              <div key={msg._id || index} style={{marginBottom: '10px'}}>
+                <strong>{msg.isAdmin ? 'Admin' : 'User'}:</strong> {msg.message}
+                <div style={{fontSize: '0.8em', color: '#888'}}>
+                  {new Date(msg.timestamp).toLocaleString()}
+                </div>
               </div>
             ))}
           </div>
